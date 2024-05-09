@@ -1,0 +1,47 @@
+/**
+ * @NApiVersion 2.x
+ * @NScriptType ClientScript
+ * @NModuleScope SameAccount
+ */
+define(['N/record', 'N/search', 'N/ui/dialog'],
+/**
+ * @param{record} record
+ * @param{search} search
+ * @param{dialog} dialog
+ */
+function(record, search, dialog) {
+  function fieldChanged(scriptContext) {
+    var currentRec = scriptContext.currentRecord;
+    var StatusCheck = currentRec.getValue({
+      fieldId: 'custbody_check_status'
+    });
+    var statusField = currentRec.getValue({
+      fieldId: 'custbody_pass_fail'
+    });
+    function checkboxDisabled(){
+        currentRec.setValue({
+          fieldId: 'custbody_pass_fail',
+          value: 'Failed',
+          ignoreFieldChange: true
+      });
+  }
+  function checkboxEnabled(){
+      currentRec.setValue({
+        fieldId: 'custbody_pass_fail',
+        value: 'Passed',
+        ignoreFieldChange: true
+    });
+  }
+  
+  if(StatusCheck===true){
+    checkboxEnabled()
+    }
+    else{
+      log.debug("Field id unchecked")
+    checkboxDisabled()
+    }
+  }
+  return {
+    fieldChanged: fieldChanged
+  };
+});
