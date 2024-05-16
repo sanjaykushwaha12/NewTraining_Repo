@@ -56,43 +56,75 @@ define(['N/record', 'N/search', 'N/ui/serverWidget', 'N/url','N/email'],
          * @since 2015.2
          */
         const onRequest = (scriptContext) => {
-            try {
-                if (scriptContext.request.method === 'POST') {
-                    var customerRecord = JSON.parse(scriptContext.request.body);
-                    let name = customerRecord.name;
-                    let emailAddr = customerRecord.email;
-                    let subject = customerRecord.subject;
-                    let message = customerRecord.message;
-                    let customRecId = createCustomRecord(name, emailAddr, subject, message);
-                    var detailsHtml = '<h2>Customer Record id Created with RecordId</h2> ' + customRecId;
-                    sendEmail(customRecId, emailAddr);
-                    scriptContext.response.write(detailsHtml);
-                }
-            } catch (error) {
-                log.error('Error in onRequest', error);
-                scriptContext.response.write('Error: ' + error.message);
-            }
-        }
+        try{
 
-        function createCustomRecord(name, emailAddr, subject, message) {
-            try {
+           
+            if (scriptContext.request.method === 'GET') {
+                // Create new form
+                var customerform = serverWidget.createForm({
+                    title: 'Custom Customer Record'
+                });
+                // Add field to newly Created from
+                customerform.addField({
+                    id: '_jj_cust_name',
+                    type: serverWidget.FieldType.TEXT,
+                    label: 'Customer Name'
+                });
+                customerform.addField({
+                    id: '_jj_cust_email',
+                    type: serverWidget.FieldType.EMAIL,
+                    label: 'Customer Email'
+                });
+            
+                customerform.addField({
+                    id: '_jj_cust_subject',
+                    type: serverWidget.FieldType.TEXT,
+                    label: 'Subject'
+                });
+                customerform.addField({
+                    id: '_cust_referance',
+                    type: serverWidget.FieldType.URL,
+                    label: "Customer Refereance"
+                });
+                customerform.addField({
+                    id: '_jj_cust_message',
+                    type: serverWidget.FieldType.TEXTAREA,
+                    label: 'Message'
+                });
+                customerform.addSubmitButton({
+                    label: 'Submit'
+                });
+                scriptContext.response.writePage(customerform);
+           
+            } 
+       
+            else if (scriptContext.request.method === 'POST') {
+                // Get Dats from Form
+                var name = scriptContext.request.parameters._jj_cust_name;
+                var custemail = scriptContext.request.parameters._jj_cust_email;
+                var subject = scriptContext.request.parameters._jj_cust_subject;
+                var message = scriptContext.request.parameters._jj_cust_message;
+                var referance = scriptContext.request.parameters._cust_referance;
                 let customerURL = '';
-                if (emailAddr) {
+                if (custemail) {
+                    log.debug("of is executrd");
                     var customerSearch = search.create({
                         type: search.Type.CUSTOMER,
-                        filters: ['email', 'is', emailAddr],
+                        filters: ['email', 'is', custemail],
                         columns: ['salesrep', 'entityid', 'internalid']
                     }).run().getRange({ start: 0, end: 1 });
 
                     if (customerSearch.length > 0) {
-                        var customerId = customerSearch[0].getValue({ name: 'internalid' });
+                        var customerId = customerSearch[0].getValue({
+                             name: 'internalid' 
+                        });
                         customerURL = url.resolveRecord({
                             recordType: record.Type.CUSTOMER,
                             recordId: customerId
                         });
                     }
                 }
-
+                //Create record with Form Data
                 var customRecord = record.create({
                     type: 'customrecord_jj_customer_record',
                     isDynamic: true
@@ -103,7 +135,7 @@ define(['N/record', 'N/search', 'N/ui/serverWidget', 'N/url','N/email'],
                 });
                 customRecord.setValue({
                     fieldId: 'custrecord_jj_customer_email',
-                    value: emailAddr
+                    value: custemail
                 });
                 customRecord.setValue({
                     fieldId: 'custrecord_jj_cust_subject',
@@ -115,28 +147,47 @@ define(['N/record', 'N/search', 'N/ui/serverWidget', 'N/url','N/email'],
                 });
                 if (customerURL) {
                     customRecord.setValue({
-                        fieldId: 'custrecord_jj_customer_reference',
+                        fieldId: 'custrecordjj_customer_reference',
                         value: customerURL
                     });
+                }
+                else{
+                    customRecord.setValue({
+                        fieldId: 'custrecordjj_customer_reference',
+                        value: referance
+                    });
+
                 }
                 var recordId = customRecord.save({
                     ignoreMandatoryFields: false,
                     enableSourcing: true
                 });
-                return recordId;
-            } catch (error) {
-                log.error('Error in createCustomRecord', error);
-                throw error;
+                    // Display submitted form details
+            var submittedDetails = 
+            'ID: ' + recordId + '<br>' +
+            'Employee Name: ' + name + '<br>' +
+            'Email: ' + custemail + '<br>' +
+            "Subject: " + subject + '<br>' +
+            "Message: " + message + '<br>';
+            scriptContext.response.write(submittedDetails);  
+            //call the function to send E-mail
+                if(recordId){
+                    sendEmail(recordId, custemail)
+                }
             }
         }
-
-        function sendEmail(customRecId, emailAddr) {
+        catch (error){
+            log.error('Error in creating record', error);
+            throw error;
+        }
+        }
+        function sendEmail(recordId, custemail) {
             try {
                 let salesRep = '';
-                if (emailAddr) {
+                if (custemail) {
                     var customerSearch = search.create({
                         type: search.Type.CUSTOMER,
-                        filters: ['email', 'is', emailAddr],
+                        filters: ['email', 'is', custemail],
                         columns: ['salesrep', 'entityid']
                     }).run().getRange({ start: 0, end: 1 });
 
@@ -144,12 +195,11 @@ define(['N/record', 'N/search', 'N/ui/serverWidget', 'N/url','N/email'],
                         salesRep = customerSearch[0].getValue({ name: 'salesrep' });
                     }
                 }
-
                 email.send({
                     author: -5,
                     recipients: [-5, salesRep],
                     subject: 'New Record Created',
-                    body: "New Record is created with id ID: " + customRecId
+                    body: "New Record is created with id ID: " + recordId
                 });
             } catch (error) {
                 log.error('Error in sendEmail', error);
