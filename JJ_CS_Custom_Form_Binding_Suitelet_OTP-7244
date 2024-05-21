@@ -49,7 +49,7 @@ function(url, currentRecord) {
             var departmentFilter = currentsalesRecord.getValue({
                 fieldId: 'sales_department'
             });
-            //Passing Paarmeter to the Suitelet
+            //Passing Parameter to the Suitelet
             document.location = url.resolveScript({
                 scriptId: 'customscript_jj_sales_order_details',
                 deploymentId: 'customdeploy_jj_sales_order_details',
