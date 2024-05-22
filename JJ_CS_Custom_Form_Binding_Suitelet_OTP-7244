@@ -1,0 +1,73 @@
+/**
+ * @NApiVersion 2.1
+ * @NScriptType Client Script
+ */
+/*****************************************************************************************************************************************************************************************
+**************************
+*
+*${OTP-7244}:${Custom page for display sales order based on the status}
+*
+******************************************************************************************************************************************************************************************
+**************************
+ *
+ * Author : Jobin and Jismi
+ *
+ * Date Created : 16-May-2024
+ *
+ * Created by :Sanjay Kushwaha, Jobin and Jismi IT Services.
+ *
+ * Description :
+    Create a custom form that will display sales orders which need to be fulfilled or billed.
+        The sublist columns contains ,
+        Internal IDs,Document Name,Date,Status,Customer Name,Subsidiary,Department,Class,Line Number,Subtotal,Tax,Total
+        The page should contains the following filters,
+        Status
+        Customer
+        Subsidiary
+        Department
+
+    The value should be update dynamically based on the filters.
+ *
+ * REVISION HISTORY :
+ *
+ *****************************************************************************************************************************************************************************************
+******************************/
+define(['N/url','N/currentRecord'],
+function(url, currentRecord) {
+    function fieldChanged(scriptContext) {
+        try{
+            var currentsalesRecord=scriptContext.currentRecord;
+            var statusFilter = currentsalesRecord.getValue({
+                fieldId: 'sales_status'
+            });
+            var customerFilter = currentsalesRecord.getValue({
+                fieldId: 'sales_customer'
+            });
+            var subsidiaryFilter = currentsalesRecord.getValue({
+                fieldId: 'sales_subsidiary'
+            })
+            var departmentFilter = currentsalesRecord.getValue({
+                fieldId: 'sales_department'
+            });
+            //Passing Parameter to the Suitelet
+            document.location = url.resolveScript({
+                scriptId: 'customscript_jj_sales_order_details',
+                deploymentId: 'customdeploy_jj_sales_order_details',
+                params: {
+                    'clientScriptCustomer': customerFilter,
+                    'clientScriptSubsidiary': subsidiaryFilter,
+                    'clientScriptStatus': statusFilter,
+                    'clientScriptDepartment': departmentFilter
+                }
+            }); 
+
+        }
+        catch{
+            log.debug("Error is in Client Script");
+        }    
+    }
+    return {
+        fieldChanged: fieldChanged
+    };
+    
+});
